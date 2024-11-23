@@ -7,6 +7,7 @@ import android.app.Activity
 import android.content.Context
 import android.location.Location
 import android.os.Bundle
+import android.os.strictmode.UntaggedSocketViolation
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -44,13 +45,15 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            CurrentLocationScreen()
+            var users = ArrayList<Pair<String, LatLng>>()
+            users.add(Pair("test", LatLng(52.397850, 16.923709)))
+            MapScreen(users)
         }
     }
 }
 
 @Composable
-fun CurrentLocationScreen() {
+fun CurrentLocation(onLocationChanged: (Location?) -> Unit) {
     val context = LocalContext.current
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
@@ -65,30 +68,20 @@ fun CurrentLocationScreen() {
         hasPermission = context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) ==
                 android.content.pm.PackageManager.PERMISSION_GRANTED
     }
-    Column (
-        modifier = Modifier.padding(top = 40.dp)/*.background(color = Color(0xffffe3eb))*/,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        if (hasPermission) {
-            LaunchedEffect(Unit) {
-                location = getLastKnownLocation(fusedLocationClient)
-            }
-            if(location != null)MapScreen(location)
-        } else {
-            Button(onClick = {
-                val activity = context as? Activity
-                activity?.requestPermissions(
-                    arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),
-                    1001
-                )
-                hasPermission = context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) ==
-                        android.content.pm.PackageManager.PERMISSION_GRANTED
 
-            }) {
-                Text("Zezwól na lokalizację")
-            }
+    if (hasPermission) {
+        LaunchedEffect(Unit) {
+            location = getLastKnownLocation(fusedLocationClient)
         }
+        if(location != null)onLocationChanged(location)
+    } else {
+        val activity = context as? Activity
+        activity?.requestPermissions(
+            arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),
+            1001
+        )
+        hasPermission = context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
     }
 }
 
@@ -102,22 +95,21 @@ suspend fun getLastKnownLocation(client: FusedLocationProviderClient): Location?
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MapScreen(location: Location?) {
-    val currentPosition = if(location != null)LatLng(location.latitude, location.longitude) else LatLng(-33.852, 151.211) // Lokalizacja w Sydney
+fun MapScreen(users: ArrayList<Pair<String, LatLng>>) {
+    //get location
+    var location by remember { mutableStateOf<Location?>(null) }
+
+    CurrentLocation { n -> location = n }
+
+    val currentPosition = if(location != null)LatLng(location!!.latitude, location!!.longitude) else LatLng(-33.852, 151.211) // Lokalizacja w Sydney
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(currentPosition, 10f)
     }
 
-    var users = ArrayList<Pair<String, LatLng>>()
-    users.add(Pair("test", LatLng(52.397850, 16.923709)
-    ))
-
     GoogleMap(
         modifier = Modifier.fillMaxSize(),
-        cameraPositionState = cameraPositionState,
-        //properties = MapProperties(isMyLocationEnabled = true)
+        cameraPositionState = cameraPositionState
     ){
         Marker(
             state = rememberMarkerState(position = currentPosition),
@@ -130,4 +122,5 @@ fun MapScreen(location: Location?) {
             )
         }
     }
+
 }
