@@ -1,4 +1,3 @@
-
 package com.example.whereareyou
 
 import android.annotation.SuppressLint
@@ -111,7 +110,6 @@ fun MapScreen(users: ArrayList<Pair<String, LatLng>>) {
     GoogleMap(
         modifier = Modifier.fillMaxSize(),
         cameraPositionState = cameraPositionState
-
     ){
         val currentPosition = location?.let { LatLng(it.latitude, it.longitude) }
         if (currentPosition != null) {
