@@ -41,7 +41,9 @@ import androidx.compose.ui.platform.LocalConfiguration
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(
+    onLogoutClick: () -> Unit
+) {
     var checked by remember { mutableStateOf(true) }
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
@@ -97,7 +99,7 @@ fun SettingsScreen() {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             FilledTonalButton(
-                                onClick = { /* TODO: Wylogowywanie */ },
+                                onClick = onLogoutClick,
                                 colors = ButtonDefaults.filledTonalButtonColors(
                                     containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
                                 )
@@ -176,7 +178,7 @@ fun SettingsScreen() {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         FilledTonalButton(
-                            onClick = { /* TODO: Wylogowywanie */ },
+                            onClick = onLogoutClick,
                             colors = ButtonDefaults.filledTonalButtonColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
                             )
