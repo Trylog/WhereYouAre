@@ -18,36 +18,29 @@ import androidx.compose.ui.Modifier
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FriendsScreen() {
+fun MapScreen() {
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
         topBar = {
             CenterAlignedTopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
                 ),
                 title = {
-                    Text("Friends")
+                    Text("Map")
                 }
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {},
-                contentColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add");
-            }
-        },
         bottomBar = {
-            NavBar(0)
+            NavBar(1)
         }
     ){ innerPadding ->
         Column (
             modifier = Modifier.padding(innerPadding)
         ){
             Card {
-                Text("test")
+                /* TODO: Dodanie mapy przygotowanej przez Michała */
             }
         }
     }

@@ -7,6 +7,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.whereareyou.ui.FriendsScreen
+import com.example.whereareyou.ui.LoginScreen
+import com.example.whereareyou.ui.MapScreen
+import com.example.whereareyou.ui.SettingsScreen
 import com.example.whereareyou.ui.theme.AppTheme
 
 class MainActivity : ComponentActivity() {
@@ -15,7 +18,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             AppTheme {
-                FriendsScreen()
+                SettingsScreen()
             }
         }
     }
@@ -25,6 +28,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun BarPreview() {
     AppTheme {
-        FriendsScreen()
+        LoginScreen()
     }
 }
