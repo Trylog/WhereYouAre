@@ -8,6 +8,7 @@ import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
@@ -18,12 +19,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 
 @Composable
-fun NavBar() {
-    var selectedItem by remember { mutableIntStateOf(0) }
+fun NavBar( number: Int ) {
+    var selectedItem by remember { mutableIntStateOf(number) }
     val items = listOf("Friends", "Map", "Settings")
     val selectedIcons = listOf(Icons.Filled.Person, Icons.Filled.LocationOn, Icons.Filled.Settings)
     val unselectedIcons = listOf(Icons.Outlined.Person, Icons.Outlined.LocationOn, Icons.Outlined.Settings)
-    NavigationBar(){
+    NavigationBar(
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+    ){
         items.forEachIndexed { index, item ->
             NavigationBarItem(
                 icon = {
