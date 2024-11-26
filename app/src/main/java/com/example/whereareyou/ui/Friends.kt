@@ -15,10 +15,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavHostController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FriendsScreen() {
+fun FriendsScreen(navController: NavHostController) {
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -40,7 +41,7 @@ fun FriendsScreen() {
             }
         },
         bottomBar = {
-            NavBar(0)
+            NavBar(navController = navController)
         }
     ){ innerPadding ->
         Column (

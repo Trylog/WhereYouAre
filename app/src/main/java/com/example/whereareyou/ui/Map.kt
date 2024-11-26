@@ -15,10 +15,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavHostController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MapScreen() {
+fun MapScreen(navController: NavHostController) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
         topBar = {
@@ -33,7 +34,7 @@ fun MapScreen() {
             )
         },
         bottomBar = {
-            NavBar(1)
+            NavBar(navController = navController)
         }
     ){ innerPadding ->
         Column (
