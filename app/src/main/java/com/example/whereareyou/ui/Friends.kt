@@ -1,5 +1,7 @@
 package com.example.whereareyou.ui
 
+import android.annotation.SuppressLint
+import android.app.Activity
 import android.location.Location
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -25,24 +27,165 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.whereareyou.ui.theme.AppTheme
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.rememberCameraPositionState
+import java.util.Locale
+
+//@Composable
+//fun CurrentLocation(onLocationChanged: (Location?) -> Unit) {
+//    val context = LocalContext.current
+//    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+//
+//    var location by remember { mutableStateOf<Location?>(null) }
+//    var hasPermission by remember {
+//        mutableStateOf(
+//            context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) ==
+//                    android.content.pm.PackageManager.PERMISSION_GRANTED
+//        )
+//    }
+//    LaunchedEffect(Unit) {
+//        hasPermission = context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) ==
+//                android.content.pm.PackageManager.PERMISSION_GRANTED
+//    }
+//
+//    if (hasPermission) {
+//        LaunchedEffect(Unit) {
+//            location = getLastKnownLocation(fusedLocationClient)
+//            onLocationChanged(location)
+//        }
+//    } else {
+//        val activity = context as? Activity
+//        activity?.requestPermissions(
+//            arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),
+//            1001
+//        )
+//        hasPermission = context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) ==
+//                android.content.pm.PackageManager.PERMISSION_GRANTED
+//    }
+//}
+//
+//@SuppressLint("MissingPermission")
+//suspend fun getLastKnownLocation(client: FusedLocationProviderClient): Location? {
+//    return try {
+//        client.lastLocation.await()
+//    } catch (e: Exception) {
+//        null
+//    }
+//}
+//
+//fun calculateDistance(start: Location, end: LatLng):Float{
+//    val newLoc = Location("new")
+//    newLoc.latitude = end.latitude
+//    newLoc.longitude = end.longitude
+//    return start.distanceTo(newLoc) / 1000
+//}
+
+@Composable
+fun FriendCard(name: String, distanceText: String) {
+    Card (
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ){
+        Row (
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(15.dp)
+        ){
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(15.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box (modifier = Modifier
+                    .size(40.dp)
+                    .background(
+                        MaterialTheme.colorScheme.primaryContainer,
+                        CircleShape
+                    ),
+                    contentAlignment = Alignment.Center
+                ){
+                    Text(
+                        text = name[0].toString(),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(5.dp),
+                ) {
+                    Text(text = name, style = MaterialTheme.typography.titleMedium)
+                    Text(text = distanceText, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+            Box (
+                Modifier.align(Alignment.CenterVertically)
+            ){
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Delete",
+                    tint = MaterialTheme.colorScheme.secondary
+                )
+            }
+        }
+
+    }
+}
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FriendsScreen() {
-    val friends = mapOf(
+
+//    var location by remember { mutableStateOf<Location?>(null) }
+//    val cameraPositionState = rememberCameraPositionState {
+//
+//    }
+//    CurrentLocation { n ->
+//        location = n
+//        n?.let {
+//            cameraPositionState
+//        }
+//    }
+
+    val openDialog = remember{ mutableStateOf(false) }
+    val friendsCoords = mapOf(
         "Aaaaaa" to LatLng(51.10845, 17.05750), 
         "Bbbbb" to LatLng(51.09923, 17.03675), 
         "Cccccc" to LatLng(51.11873, 16.99022), 
         "Ddddddd" to LatLng(51.11065, 17.03358)
     )
-    val location = LatLng(51.10725, 17.06246)
+    val location1 = LatLng(51.10725, 17.06246)
+    val friendsDistances = LinkedHashMap<String, Float>()
+    friendsCoords.forEach{ (name, coords) ->
+        val locationA = Location("current")
+        locationA.latitude = location1.latitude
+        locationA.longitude = location1.longitude
+        val locationB = Location(name)
+        locationB.latitude = coords.latitude
+        locationB.longitude = coords.longitude
+        val distance: Float = locationA.distanceTo(locationB)
+        friendsDistances[name] = distance
+    }
+    val friendsSorted = friendsDistances.toList().sortedBy { it.second }.toMap()
+    if (openDialog.value) {
+        AddFriendDialog(openDialog = openDialog)
+    }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -57,10 +200,12 @@ fun FriendsScreen() {
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = {},
+                onClick = {
+                    openDialog.value = true
+                },
                 contentColor = MaterialTheme.colorScheme.primary
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add");
+                Icon(Icons.Default.Add, contentDescription = "Add")
             }
         },
         bottomBar = {
@@ -75,70 +220,20 @@ fun FriendsScreen() {
                 .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(15.dp)
         ){
-            friends.forEach { (name, coords) ->
-                val locationA: Location = Location("current")
-                locationA.latitude = location.latitude
-                locationA.longitude = location.longitude
-                val locationB: Location = Location(name)
-                locationB.latitude = coords.latitude
-                locationB.longitude = coords.longitude
-                var distance: Float = locationA.distanceTo(locationB)
+            friendsSorted.forEach { (name, distance) ->
+                var dist = distance
                 var distanceText = ""
-                if (distance > 1000) {
-                    distance /= 1000
-                    distanceText = distanceText.plus(String.format("%.2f", distance)).plus(" km")
+                if (dist > 1000) {
+                    dist /= 1000
+                    distanceText = distanceText.plus(
+                        String.format(Locale.forLanguageTag("pl"), "%.2f", dist)
+                    ).plus(" km")
                 } else {
-                    distanceText = distanceText.plus(String.format("%.2f", distance)).plus(" m")
+                    distanceText = distanceText.plus(
+                        String.format(Locale.forLanguageTag("pl"), "%.2f", dist)
+                    ).plus(" m")
                 }
-                Card (
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    ),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                ){
-                    Row (
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(15.dp)
-                    ){
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(15.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box (modifier = Modifier
-                                .size(40.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.primaryContainer,
-                                    CircleShape
-                                ),
-                                contentAlignment = Alignment.Center
-                            ){
-                                Text(
-                                    text = name[0].toString(),
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            }
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(5.dp),
-                            ) {
-                                Text(text = name, style = MaterialTheme.typography.titleMedium)
-                                Text(text = distanceText, style = MaterialTheme.typography.bodyMedium)
-                            }
-                        }
-                        Box (
-                            Modifier.align(Alignment.CenterVertically)
-                        ){
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = "Delete",
-                                tint = MaterialTheme.colorScheme.secondary
-                            )
-                        }
-                    }
-
-                }
+                FriendCard(name, distanceText)
             }
 
         }
