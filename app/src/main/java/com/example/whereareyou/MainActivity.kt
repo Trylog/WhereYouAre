@@ -4,8 +4,21 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.location.Location
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.*
+import androidx.navigation.compose.rememberNavController
+import com.example.whereareyou.ui.theme.AppTheme
+import com.example.whereareyou.ui.MainNavigation
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.GoogleAuthProvider
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -27,113 +40,102 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
 import kotlinx.coroutines.tasks.await
 
+
 class MainActivity : ComponentActivity() {
+    private lateinit var googleSignInClient: GoogleSignInClient
+    private lateinit var firebaseAuth: FirebaseAuth
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            var users = ArrayList<Pair<String, LatLng>>()
-            users.add(Pair("test", LatLng(52.397850, 16.923709)))
-            MapScreen(users)
-        }
-    }
-}
 
-@Composable
-fun CurrentLocation(onLocationChanged: (Location?) -> Unit) {
-    val context = LocalContext.current
-    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+        // Configure Google Sign-In
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken("628547724758-6tm8mavg3ju6orl4qhaharlcj24umj4u.apps.googleusercontent.com")
+            .requestEmail()
+            .build()
+        googleSignInClient = GoogleSignIn.getClient(this, gso)
 
-    var location by remember { mutableStateOf<Location?>(null) }
-    var hasPermission by remember {
-        mutableStateOf(
-            context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) ==
-                    android.content.pm.PackageManager.PERMISSION_GRANTED
-        )
-    }
-    LaunchedEffect(Unit) {
-        hasPermission = context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) ==
-                android.content.pm.PackageManager.PERMISSION_GRANTED
-    }
+        // Initialize FirebaseAuth
+        firebaseAuth = FirebaseAuth.getInstance()
 
-    if (hasPermission) {
-        LaunchedEffect(Unit) {
-            location = getLastKnownLocation(fusedLocationClient)
-            onLocationChanged(location)
-        }
-    } else {
-        val activity = context as? Activity
-        activity?.requestPermissions(
-            arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),
-            1001
-        )
-        hasPermission = context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) ==
-                android.content.pm.PackageManager.PERMISSION_GRANTED
-    }
-}
-
-@SuppressLint("MissingPermission")
-suspend fun getLastKnownLocation(client: FusedLocationProviderClient): Location? {
-    return try {
-        client.lastLocation.await()
-    } catch (e: Exception) {
-        null
-    }
-}
-
-fun calculateDistance(start: Location, end: LatLng):Float{
-    val newLoc = Location("new")
-    newLoc.latitude = end.latitude
-    newLoc.longitude = end.longitude
-    return start.distanceTo(newLoc) / 1000
-}
-
-@Composable
-fun MapScreen(users: ArrayList<Pair<String, LatLng>>) {
-    //get location
-    var location by remember { mutableStateOf<Location?>(null) }
-
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(LatLng(-33.852, 151.211), 10f)
-    }
-
-    CurrentLocation { n ->
-        location = n
-        n?.let {
-            cameraPositionState.position = CameraPosition.fromLatLngZoom(
-                LatLng(it.latitude, it.longitude),
-                10f
-            )
-        }
-    }
-
-    GoogleMap(
-        modifier = Modifier.fillMaxSize(),
-        cameraPositionState = cameraPositionState
-    ){
-        val currentPosition = location?.let { LatLng(it.latitude, it.longitude) }
-        if (currentPosition != null) {
-            Marker(
-                state = rememberMarkerState(position = currentPosition),
-                title = "Moja lokalizacja",
-            )
-        }
-
-        for (user in users) {
-            Marker(
-                state = rememberMarkerState(position = user.second),
-                title = user.first,
-                snippet = location?.let {
-                    "Odległość: " + String.format("%.2f",calculateDistance(it, user.second)) + "km"
-                } ?: "Lokalizacja niedostępna"
-            )
-            if (currentPosition != null) {
-                Polyline(
-                    points = listOf(currentPosition, user.second),
-                    color = androidx.compose.ui.graphics.Color.Blue,
-                    width = 5f
-                )
+        // Launcher to handle sign-in result
+        val signInLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            try {
+                val account = task.getResult(Exception::class.java)
+                firebaseAuthWithGoogle(account) { success ->
+                    if (success) {
+                        Log.d("SignIn", "Sign-in successful: ${firebaseAuth.currentUser?.displayName}")
+                    } else {
+                        Log.e("SignIn", "Sign-in failed")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("SignIn", "Google Sign-In failed", e)
             }
         }
+
+        setContent {
+
+            AppTheme {
+                val navController = rememberNavController()
+
+                // State to track current Firebase user
+                var currentUser by remember { mutableStateOf<FirebaseUser?>(firebaseAuth.currentUser) }
+                val isLoggedIn = currentUser != null
+
+                // Listen for auth state changes
+                DisposableEffect(Unit) {
+                    val authListener = FirebaseAuth.AuthStateListener {
+                        currentUser = it.currentUser
+                    }
+                    firebaseAuth.addAuthStateListener(authListener)
+                    onDispose {
+                        firebaseAuth.removeAuthStateListener(authListener)
+                    }
+                }
+
+                // MainNavigation with login and logout actions
+                MainNavigation(
+                    navController = navController,
+                    isLoggedIn = isLoggedIn,
+                    onLoginClick = {
+                        val signInIntent = googleSignInClient.signInIntent
+                        signInLauncher.launch(signInIntent)
+                    },
+                    onLogoutClick = {
+                        firebaseAuth.signOut()
+                        googleSignInClient.signOut()
+                        navController.navigate("login") {
+                            popUpTo("settings") { inclusive = true }
+                        }
+                    }
+                )
+
+                // Navigate after login only once
+                LaunchedEffect(isLoggedIn) {
+                    if (isLoggedIn) {
+                        Log.d("Navigation", "Navigating to settings screen")
+                        navController.navigate("settings") {
+                            popUpTo("login") { inclusive = true }
+                        }
+                    }
+                }
+            }
+
+        }
+    }
+
+
+    private fun firebaseAuthWithGoogle(account: GoogleSignInAccount?, onSuccess: (Boolean) -> Unit) {
+        val credential = GoogleAuthProvider.getCredential(account?.idToken, null)
+        firebaseAuth.signInWithCredential(credential)
+            .addOnCompleteListener(this) { task ->
+                if (task.isSuccessful) {
+                    onSuccess(true)  // Notify success
+                } else {
+                    onSuccess(false)  // Notify failure
+                }
+            }
     }
 }
