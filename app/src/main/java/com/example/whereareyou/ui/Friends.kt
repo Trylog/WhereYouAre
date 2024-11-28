@@ -40,58 +40,60 @@ import androidx.compose.ui.unit.dp
 import com.example.whereareyou.ui.theme.AppTheme
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.rememberCameraPositionState
 import java.util.Locale
+import kotlinx.coroutines.tasks.await
 
-//@Composable
-//fun CurrentLocation(onLocationChanged: (Location?) -> Unit) {
-//    val context = LocalContext.current
-//    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
-//
-//    var location by remember { mutableStateOf<Location?>(null) }
-//    var hasPermission by remember {
-//        mutableStateOf(
-//            context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) ==
-//                    android.content.pm.PackageManager.PERMISSION_GRANTED
-//        )
-//    }
-//    LaunchedEffect(Unit) {
-//        hasPermission = context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) ==
-//                android.content.pm.PackageManager.PERMISSION_GRANTED
-//    }
-//
-//    if (hasPermission) {
-//        LaunchedEffect(Unit) {
-//            location = getLastKnownLocation(fusedLocationClient)
-//            onLocationChanged(location)
-//        }
-//    } else {
-//        val activity = context as? Activity
-//        activity?.requestPermissions(
-//            arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),
-//            1001
-//        )
-//        hasPermission = context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) ==
-//                android.content.pm.PackageManager.PERMISSION_GRANTED
-//    }
-//}
-//
-//@SuppressLint("MissingPermission")
-//suspend fun getLastKnownLocation(client: FusedLocationProviderClient): Location? {
-//    return try {
-//        client.lastLocation.await()
-//    } catch (e: Exception) {
-//        null
-//    }
-//}
-//
-//fun calculateDistance(start: Location, end: LatLng):Float{
-//    val newLoc = Location("new")
-//    newLoc.latitude = end.latitude
-//    newLoc.longitude = end.longitude
-//    return start.distanceTo(newLoc) / 1000
-//}
+@Composable
+fun CurrentLocation(onLocationChanged: (Location?) -> Unit) {
+    val context = LocalContext.current
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+
+    var location by remember { mutableStateOf<Location?>(null) }
+    var hasPermission by remember {
+        mutableStateOf(
+            context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) ==
+                    android.content.pm.PackageManager.PERMISSION_GRANTED
+        )
+    }
+    LaunchedEffect(Unit) {
+        hasPermission = context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+    }
+
+    if (hasPermission) {
+        LaunchedEffect(Unit) {
+            location = getLastKnownLocation(fusedLocationClient)
+            onLocationChanged(location)
+        }
+    } else {
+        val activity = context as? Activity
+        activity?.requestPermissions(
+            arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),
+            1001
+        )
+        hasPermission = context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+    }
+}
+
+@SuppressLint("MissingPermission")
+suspend fun getLastKnownLocation(client: FusedLocationProviderClient): Location? {
+    return try {
+        client.lastLocation.await()
+    } catch (e: Exception) {
+        null
+    }
+}
+
+fun calculateDistance(start: Location, end: LatLng):Float{
+    val newLoc = Location("new")
+    newLoc.latitude = end.latitude
+    newLoc.longitude = end.longitude
+    return start.distanceTo(newLoc)
+}
 
 @Composable
 fun FriendCard(name: String, distanceText: String) {
@@ -151,16 +153,19 @@ fun FriendCard(name: String, distanceText: String) {
 @Composable
 fun FriendsScreen() {
 
-//    var location by remember { mutableStateOf<Location?>(null) }
-//    val cameraPositionState = rememberCameraPositionState {
-//
-//    }
-//    CurrentLocation { n ->
-//        location = n
-//        n?.let {
-//            cameraPositionState
-//        }
-//    }
+    var location by remember { mutableStateOf<Location?>(null) }
+    val cameraPositionState = rememberCameraPositionState {
+
+    }
+    CurrentLocation { n ->
+        location = n
+        n?.let {
+            cameraPositionState.position = CameraPosition.fromLatLngZoom(
+                LatLng(it.latitude, it.longitude),
+                10f
+            )
+        }
+    }
 
     val openDialog = remember{ mutableStateOf(false) }
     val friendsCoords = mapOf(
@@ -169,17 +174,9 @@ fun FriendsScreen() {
         "Cccccc" to LatLng(51.11873, 16.99022), 
         "Ddddddd" to LatLng(51.11065, 17.03358)
     )
-    val location1 = LatLng(51.10725, 17.06246)
     val friendsDistances = LinkedHashMap<String, Float>()
     friendsCoords.forEach{ (name, coords) ->
-        val locationA = Location("current")
-        locationA.latitude = location1.latitude
-        locationA.longitude = location1.longitude
-        val locationB = Location(name)
-        locationB.latitude = coords.latitude
-        locationB.longitude = coords.longitude
-        val distance: Float = locationA.distanceTo(locationB)
-        friendsDistances[name] = distance
+        friendsDistances[name] = location?.let{calculateDistance(it, coords)} ?: 0.0.toFloat()
     }
     val friendsSorted = friendsDistances.toList().sortedBy { it.second }.toMap()
     if (openDialog.value) {

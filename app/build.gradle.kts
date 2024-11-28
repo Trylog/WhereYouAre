@@ -11,7 +11,8 @@ android {
     defaultConfig {
         applicationId = "com.example.whereareyou"
         minSdk = 24
-        targetSdk = 34
+        //noinspection EditedTargetSdkVersion
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -53,6 +54,9 @@ dependencies {
     implementation(libs.play.services.location)
     implementation(libs.maps.compose)
     implementation(libs.androidx.concurrent.futures.ktx)
+    implementation(libs.androidx.concurrent.futures)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.firebase.auth)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
