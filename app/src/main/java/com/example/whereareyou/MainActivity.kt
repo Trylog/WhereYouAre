@@ -126,7 +126,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-
     private fun firebaseAuthWithGoogle(account: GoogleSignInAccount?, onSuccess: (Boolean) -> Unit) {
         val credential = GoogleAuthProvider.getCredential(account?.idToken, null)
         firebaseAuth.signInWithCredential(credential)
@@ -139,3 +138,4 @@ class MainActivity : ComponentActivity() {
             }
     }
 }
+

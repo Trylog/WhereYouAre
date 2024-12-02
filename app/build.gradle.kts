@@ -50,6 +50,15 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+
+    implementation(libs.play.services.maps)
+    implementation(libs.play.services.location)
+    implementation(libs.maps.compose)
+    implementation(libs.androidx.concurrent.futures.ktx)
+    implementation(libs.androidx.concurrent.futures)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.firebase.auth)
+
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation(libs.androidx.navigation.compose)
 
@@ -64,6 +73,7 @@ dependencies {
     implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
     implementation(libs.play.services.location)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
