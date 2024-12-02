@@ -209,6 +209,7 @@ fun FriendsScreen() {
             NavBar(0)
         },
         containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+
     ){ innerPadding ->
         Column (
             modifier = Modifier
