@@ -92,6 +92,7 @@ fun MapComponent() {
     var location by remember { mutableStateOf<Location?>(null) }
 
     var users = ArrayList<Pair<String, LatLng>>()
+    users.add(Pair("test", LatLng(52.397850, 16.923709)))
 
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(LatLng(-33.852, 151.211), 10f)

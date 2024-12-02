@@ -30,11 +30,5 @@ fun MainNavigation(
         composable("friends") {
             FriendsScreen(navController = navController)
         }
-        composable("map"){
-            var users_test = ArrayList<Pair<String, LatLng>>()
-            users_test.add(Pair("test", LatLng(52.397850, 16.923709)))
-
-            MapScreen(users_test)
-        }
     }
 }

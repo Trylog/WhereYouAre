@@ -56,7 +56,6 @@ dependencies {
     implementation(libs.maps.compose)
     implementation(libs.androidx.concurrent.futures.ktx)
     implementation(libs.androidx.concurrent.futures)
-    implementation(libs.kotlinx.coroutines.android)
     implementation(libs.firebase.auth)
 
     implementation(libs.androidx.navigation.runtime.ktx)
