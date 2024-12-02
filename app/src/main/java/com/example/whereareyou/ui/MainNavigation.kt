@@ -14,12 +14,21 @@ fun MainNavigation(
     onLoginClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
-    NavHost(navController = navController, startDestination = if (isLoggedIn) "settings" else "login") {
-        composable("login") { LoginScreen(onLoginClick = onLoginClick) }
+    NavHost(
+        navController = navController,
+        startDestination = if (isLoggedIn) "settings" else "login"
+    ) {
+        composable("login") {
+            LoginScreen(onLoginClick = onLoginClick)
+        }
         composable("settings") {
-            SettingsScreen(
-                onLogoutClick = onLogoutClick
-            )
+            SettingsScreen(onLogoutClick = onLogoutClick, navController = navController)
+        }
+        composable("map") {
+            MapScreen(navController = navController)
+        }
+        composable("friends") {
+            FriendsScreen(navController = navController)
         }
         composable("map"){
             var users_test = ArrayList<Pair<String, LatLng>>()

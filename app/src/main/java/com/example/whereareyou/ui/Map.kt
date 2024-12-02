@@ -15,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavHostController
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.location.Location
@@ -137,7 +138,7 @@ fun MapComponent(users: ArrayList<Pair<String, LatLng>>) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MapScreen(users: ArrayList<Pair<String, LatLng>>) {
+fun MapScreen(navController: NavHostController, users: ArrayList<Pair<String, LatLng>>) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
         topBar = {
@@ -152,7 +153,7 @@ fun MapScreen(users: ArrayList<Pair<String, LatLng>>) {
             )
         },
         bottomBar = {
-            NavBar(1)
+            NavBar(navController = navController)
         }
     ) { innerPadding ->
         Column(

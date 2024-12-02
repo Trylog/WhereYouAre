@@ -37,11 +37,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.navigation.NavHostController
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    navController: NavHostController,
     onLogoutClick: () -> Unit
 ) {
     var checked by remember { mutableStateOf(true) }
@@ -62,7 +64,7 @@ fun SettingsScreen(
             )
         },
         bottomBar = {
-            NavBar(2)
+            NavBar(navController = navController)
         }
     ) { innerPadding ->
         if (isLandscape) {
