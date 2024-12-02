@@ -83,7 +83,7 @@ fun calculateDistance(start: Location, end: LatLng):Float{
     val newLoc = Location("new")
     newLoc.latitude = end.latitude
     newLoc.longitude = end.longitude
-    return start.distanceTo(newLoc) / 1000
+    return start.distanceTo(newLoc)
 }
 
 @Composable
@@ -122,7 +122,13 @@ fun MapComponent(users: ArrayList<Pair<String, LatLng>>) {
                 state = rememberMarkerState(position = user.second),
                 title = user.first,
                 snippet = location?.let {
-                    "Odległość: " + String.format("%.2f", calculateDistance(it, user.second)) + "km"
+                    var d = calculateDistance(it, user.second)
+                    if (d >= 1000){
+                        "Odległość: " + String.format("%.2f", d/1000) + "km"
+                    } else {
+                        "Odległość: " + String.format("%.2f", d) + "m"
+                    }
+
                 } ?: "Lokalizacja niedostępna"
             )
             if (currentPosition != null) {

@@ -47,54 +47,6 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import java.util.Locale
 import kotlinx.coroutines.tasks.await
 
-@Composable
-fun CurrentLocation(onLocationChanged: (Location?) -> Unit) {
-    val context = LocalContext.current
-    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
-
-    var location by remember { mutableStateOf<Location?>(null) }
-    var hasPermission by remember {
-        mutableStateOf(
-            context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) ==
-                    android.content.pm.PackageManager.PERMISSION_GRANTED
-        )
-    }
-    LaunchedEffect(Unit) {
-        hasPermission = context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) ==
-                android.content.pm.PackageManager.PERMISSION_GRANTED
-    }
-
-    if (hasPermission) {
-        LaunchedEffect(Unit) {
-            location = getLastKnownLocation(fusedLocationClient)
-            onLocationChanged(location)
-        }
-    } else {
-        val activity = context as? Activity
-        activity?.requestPermissions(
-            arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),
-            1001
-        )
-        hasPermission = context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) ==
-                android.content.pm.PackageManager.PERMISSION_GRANTED
-    }
-}
-
-@SuppressLint("MissingPermission")
-suspend fun getLastKnownLocation(client: FusedLocationProviderClient): Location? {
-    return try {
-        client.lastLocation.await()
-    } catch (e: Exception) {
-        null
-    }
-}
-
-fun calculateDistance(start: Location, end: LatLng):Float{
-    val newLoc = Location("new")
-    newLoc.latitude = end.latitude
-    newLoc.longitude = end.longitude
-    return start.distanceTo(newLoc)
-}
 
 @Composable
 fun FriendCard(name: String, distanceText: String) {
@@ -234,13 +186,5 @@ fun FriendsScreen(navController: NavHostController) {
             }
 
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun FriendsPreview() {
-    AppTheme {
-        FriendsScreen()
     }
 }
