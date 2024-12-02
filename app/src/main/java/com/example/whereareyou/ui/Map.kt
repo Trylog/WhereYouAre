@@ -87,9 +87,11 @@ fun calculateDistance(start: Location, end: LatLng):Float{
 }
 
 @Composable
-fun MapComponent(users: ArrayList<Pair<String, LatLng>>) {
+fun MapComponent() {
     //get location
     var location by remember { mutableStateOf<Location?>(null) }
+
+    var users = ArrayList<Pair<String, LatLng>>()
 
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(LatLng(-33.852, 151.211), 10f)
@@ -144,7 +146,7 @@ fun MapComponent(users: ArrayList<Pair<String, LatLng>>) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MapScreen(navController: NavHostController, users: ArrayList<Pair<String, LatLng>>) {
+fun MapScreen(navController: NavHostController) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
         topBar = {
@@ -166,7 +168,7 @@ fun MapScreen(navController: NavHostController, users: ArrayList<Pair<String, La
             modifier = Modifier.padding(innerPadding)
         ) {
             Card {
-                MapComponent(users)
+                MapComponent()
             }
         }
     }
