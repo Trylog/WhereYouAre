@@ -118,7 +118,7 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(isLoggedIn) {
                     if (isLoggedIn) {
                         Log.d("Navigation", "Navigating to settings screen")
-                        navController.navigate("map") {
+                        navController.navigate("settings") {
                             popUpTo("login") { inclusive = true }
                         }
                     }

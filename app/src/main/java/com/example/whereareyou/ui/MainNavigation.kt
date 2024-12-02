@@ -22,7 +22,7 @@ fun MainNavigation(
             LoginScreen(onLoginClick = onLoginClick)
         }
         composable("settings") {
-            SettingsScreen(onLogoutClick = onLogoutClick, navController = navController)
+            SettingsScreen( navController = navController, onLogoutClick = onLogoutClick)
         }
         composable("map") {
             MapScreen(navController = navController)
