@@ -118,7 +118,7 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(isLoggedIn) {
                     if (isLoggedIn) {
                         Log.d("Navigation", "Navigating to settings screen")
-                        navController.navigate("settings") {
+                        navController.navigate("map") {
                             popUpTo("login") { inclusive = true }
                         }
                     }
@@ -127,7 +127,6 @@ class MainActivity : ComponentActivity() {
 
         }
     }
-
 
     private fun firebaseAuthWithGoogle(account: GoogleSignInAccount?, onSuccess: (Boolean) -> Unit) {
         val credential = GoogleAuthProvider.getCredential(account?.idToken, null)

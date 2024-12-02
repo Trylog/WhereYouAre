@@ -5,6 +5,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.google.android.gms.maps.model.LatLng
 
 @Composable
 fun MainNavigation(
@@ -28,6 +29,12 @@ fun MainNavigation(
         }
         composable("friends") {
             FriendsScreen(navController = navController)
+        }
+        composable("map"){
+            var users_test = ArrayList<Pair<String, LatLng>>()
+            users_test.add(Pair("test", LatLng(52.397850, 16.923709)))
+
+            MapScreen(users_test)
         }
     }
 }
