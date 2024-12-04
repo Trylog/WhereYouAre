@@ -1,8 +1,5 @@
 package com.example.whereareyou
 
-import android.annotation.SuppressLint
-import android.app.Activity
-import android.location.Location
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -19,33 +16,20 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.whereareyou.ui.LoginScreen
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.Polyline
-import com.google.maps.android.compose.rememberCameraPositionState
-import com.google.maps.android.compose.rememberMarkerState
-import kotlinx.coroutines.tasks.await
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.firestore
 
 
 class MainActivity : ComponentActivity() {
     private lateinit var googleSignInClient: GoogleSignInClient
     private lateinit var firebaseAuth: FirebaseAuth
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -82,6 +66,9 @@ class MainActivity : ComponentActivity() {
             AppTheme {
                 val navController = rememberNavController()
 
+                val db = Firebase.firestore
+                val userData = remember { mutableStateOf<DocumentSnapshot?>(null) }
+
                 // State to track current Firebase user
                 var currentUser by remember { mutableStateOf<FirebaseUser?>(firebaseAuth.currentUser) }
                 val isLoggedIn = currentUser != null
@@ -98,25 +85,42 @@ class MainActivity : ComponentActivity() {
                 }
 
                 // MainNavigation with login and logout actions
-                MainNavigation(
-                    navController = navController,
-                    isLoggedIn = isLoggedIn,
-                    onLoginClick = {
-                        val signInIntent = googleSignInClient.signInIntent
-                        signInLauncher.launch(signInIntent)
-                    },
-                    onLogoutClick = {
-                        firebaseAuth.signOut()
-                        googleSignInClient.signOut()
-                        navController.navigate("login") {
-                            popUpTo("settings") { inclusive = true }
-                        }
-                    }
-                )
+
+                    MainNavigation(
+                        navController = navController,
+                        isLoggedIn = isLoggedIn,
+                        onLoginClick = {
+                            val signInIntent = googleSignInClient.signInIntent
+                            signInLauncher.launch(signInIntent)
+                        },
+                        onLogoutClick = {
+                            firebaseAuth.signOut()
+                            googleSignInClient.signOut()
+                            navController.navigate("login") {
+                                popUpTo("settings") { inclusive = true }
+                            }
+                        },
+                        uid = firebaseAuth.currentUser?.uid ?: "",
+                        db = db,
+                        userData = userData.value,
+                    )
+
 
                 // Navigate after login only once
                 LaunchedEffect(isLoggedIn) {
                     if (isLoggedIn) {
+                        val docRef = db.collection("users").document(firebaseAuth.currentUser?.uid ?: "")
+                        docRef.get().addOnSuccessListener { document ->
+                            if (document != null) {
+                                Log.d("Database", "DocumentSnapshot data: ${document.data}")
+                                userData.value = document
+                                Log.d("Database", "Data: $userData")
+                            } else {
+                                Log.d("Database", "No such document")
+                            }
+                        }.addOnFailureListener { exception ->
+                            Log.d("Database", "get failed with", exception)
+                        }
                         Log.d("Navigation", "Navigating to settings screen")
                         navController.navigate("settings") {
                             popUpTo("login") { inclusive = true }

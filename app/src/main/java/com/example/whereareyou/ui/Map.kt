@@ -2,13 +2,9 @@ package com.example.whereareyou.ui
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -30,6 +26,7 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.firebase.firestore.GeoPoint
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.Polyline
@@ -79,7 +76,7 @@ suspend fun getLastKnownLocation(client: FusedLocationProviderClient): Location?
     }
 }
 
-fun calculateDistance(start: Location, end: LatLng):Float{
+fun calculateDistance(start: Location, end: GeoPoint):Float{
     val newLoc = Location("new")
     newLoc.latitude = end.latitude
     newLoc.longitude = end.longitude
@@ -91,7 +88,7 @@ fun MapComponent() {
     //get location
     var location by remember { mutableStateOf<Location?>(null) }
 
-    var users = ArrayList<Pair<String, LatLng>>()
+    val users = ArrayList<Pair<String, LatLng>>()
     users.add(Pair("test", LatLng(52.397850, 16.923709)))
 
     val cameraPositionState = rememberCameraPositionState {
@@ -125,7 +122,7 @@ fun MapComponent() {
                 state = rememberMarkerState(position = user.second),
                 title = user.first,
                 snippet = location?.let {
-                    var d = calculateDistance(it, user.second)
+                    val d = calculateDistance(it, GeoPoint(user.second.latitude, user.second.longitude))
                     if (d >= 1000){
                         "Odległość: " + String.format("%.2f", d/1000) + "km"
                     } else {

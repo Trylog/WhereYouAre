@@ -1,6 +1,9 @@
 package com.example.whereareyou.ui
 
 
+import android.content.ClipData
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,24 +25,40 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.whereareyou.R
+import com.google.firebase.firestore.DocumentSnapshot
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import com.google.firebase.firestore.FirebaseFirestore
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddFriendDialog(openDialog: MutableState<Boolean>) {
+fun AddFriendDialog(openDialog: MutableState<Boolean>, userData: DocumentSnapshot?, db: FirebaseFirestore) {
     if (openDialog.value) {
+        var code = ""
+        if (userData != null) {
+//            code = userData.data?.get("FriendCode")?.toString()?.let { Text(it) }
+            code = userData.data?.get("FriendCode").toString()
+        }
+        val clipboard = LocalClipboardManager.current
+        val context = LocalContext.current
+        var text by remember { mutableStateOf("") }
+        Log.d("TEST", "Dialog: $userData")
         BasicAlertDialog(
             onDismissRequest = {
                 openDialog.value = false
@@ -84,10 +103,16 @@ fun AddFriendDialog(openDialog: MutableState<Boolean>) {
                     ) {
                         AssistChip(
                             onClick = {},
-                            label = { Text("XXXX") }
+                            label = {
+                                Text(code)
+                            }
+//                            label = {Text("XXXX")}
                         )
                         TextButton(
-                            onClick = {}
+                            onClick = {
+                                clipboard.setClip(ClipEntry(ClipData.newPlainText("code",code)))
+                                Toast.makeText(context, "Copied", Toast.LENGTH_SHORT).show()
+                            }
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.baseline_content_copy_24),
@@ -107,12 +132,29 @@ fun AddFriendDialog(openDialog: MutableState<Boolean>) {
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ){
                         OutlinedTextField(
-                            value = "",
-                            onValueChange = {},
-                            label = {Text("Your friend's code")}
+                            value = text,
+                            onValueChange = { text = it },
+                            label = { Text("Your friend's code") }
                         )
                         TextButton(
-                            onClick = {},
+                            onClick = {
+                                db.collection("FriendCodes").document(text).get()
+                                    .addOnSuccessListener { document ->
+                                        val uid = document.data?.get("userID").toString()
+                                        Log.d("AddingFriend", "UserID: $uid")
+                                        if (userData != null) {
+                                            val doc1 = db.collection("users").document(userData.id)
+                                            Log.d("AddingFriend", "$doc1")
+                                            val doc2 = doc1.collection("Friend").document(uid)
+                                            Log.d("AddingFriend", "$doc2")
+                                            doc2.set(HashMap<String, Any>()).addOnSuccessListener {
+                                                Log.d("AddingFriend", "Success")
+                                            }.addOnFailureListener { e ->
+                                                Log.d("AddingFriend", "Error: $e")
+                                            }
+                                        }
+                                    }
+                            },
                         ) {
                             Icon(
                                 Icons.Default.Check,
