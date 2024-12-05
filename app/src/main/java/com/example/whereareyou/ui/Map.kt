@@ -15,6 +15,7 @@ import androidx.navigation.NavHostController
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.location.Location
+import android.util.Log
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -26,6 +27,8 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.firebase.firestore.FieldPath
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.GeoPoint
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.Marker
@@ -84,17 +87,21 @@ fun calculateDistance(start: Location, end: GeoPoint):Float{
 }
 
 @Composable
-fun MapComponent() {
-    //get location
+fun MapComponent(friendsCoords: Map<String, GeoPoint>?) {
+    // Przechowywanie lokalizacji użytkownika
     var location by remember { mutableStateOf<Location?>(null) }
 
-    val users = ArrayList<Pair<String, LatLng>>()
-    users.add(Pair("test", LatLng(52.397850, 16.923709)))
+    // Konwertuj dane z friendsCoords na listę użytkowników
+    val users = friendsCoords?.map { entry ->
+        entry.key to LatLng(entry.value.latitude, entry.value.longitude)
+    } ?: emptyList()
 
+    // Kamera mapy
     val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(LatLng(-33.852, 151.211), 10f)
+        position = CameraPosition.fromLatLngZoom(LatLng(51.107885, 17.0385367), 10f) // Domyślna pozycja (Wrocław)
     }
 
+    // Pobierz bieżącą lokalizację użytkownika
     CurrentLocation { n ->
         location = n
         n?.let {
@@ -105,35 +112,41 @@ fun MapComponent() {
         }
     }
 
+    // Renderowanie mapy
     GoogleMap(
         modifier = Modifier.fillMaxSize(),
         cameraPositionState = cameraPositionState
     ) {
+        // Marker dla bieżącej lokalizacji użytkownika
         val currentPosition = location?.let { LatLng(it.latitude, it.longitude) }
         if (currentPosition != null) {
             Marker(
                 state = rememberMarkerState(position = currentPosition),
-                title = "Moja lokalizacja",
+                title = "Moja lokalizacja"
             )
         }
 
-        for (user in users) {
+        // Markery dla znajomych
+        for ((name, latLng) in users) {
             Marker(
-                state = rememberMarkerState(position = user.second),
-                title = user.first,
+                state = rememberMarkerState(position = latLng),
+                title = name,
                 snippet = location?.let {
-                    val d = calculateDistance(it, GeoPoint(user.second.latitude, user.second.longitude))
-                    if (d >= 1000){
-                        "Odległość: " + String.format("%.2f", d/1000) + "km"
+                    Log.d("lating",latLng.toString())
+                    val distance = calculateDistance(it, GeoPoint(latLng.latitude, latLng.longitude))
+                    Log.d("lating", distance.toString())
+                    if (distance >= 1000) {
+                        "Odległość: ${String.format("%.2f", distance / 1000)} km"
                     } else {
-                        "Odległość: " + String.format("%.2f", d) + "m"
+                        "Odległość: ${String.format("%.2f", distance)} m"
                     }
-
                 } ?: "Lokalizacja niedostępna"
             )
+
+            // Dodanie linii między użytkownikiem a znajomym
             if (currentPosition != null) {
                 Polyline(
-                    points = listOf(currentPosition, user.second),
+                    points = listOf(currentPosition, latLng),
                     color = androidx.compose.ui.graphics.Color.Blue,
                     width = 5f
                 )
@@ -142,9 +155,30 @@ fun MapComponent() {
     }
 }
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MapScreen(navController: NavHostController) {
+fun MapScreen(navController: NavHostController, db: FirebaseFirestore, uid: String) {
+    var location by remember { mutableStateOf<Location?>(null) }
+    val isRefreshing = remember { mutableStateOf(false) }
+    val friendsCoords2 = remember { mutableStateOf<Map<String, GeoPoint>?>(null) }
+
+    // Pobieranie danych znajomych
+    LaunchedEffect(Unit) {
+        db.collection("users").document(uid).collection("Friend").get()
+            .addOnSuccessListener { collection ->
+                val friendIds = collection.documents.map { it.id }
+                db.collection("users").whereIn(FieldPath.documentId(), friendIds).get()
+                    .addOnSuccessListener { snapshot ->
+                        friendsCoords2.value = snapshot.documents.mapNotNull { document ->
+                            val name = document.getString("Username")
+                            val loc = document.getGeoPoint("LastLocation")
+                            if (name != null && loc != null) name to loc else null
+                        }.toMap()
+                    }
+            }
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
         topBar = {
@@ -153,9 +187,7 @@ fun MapScreen(navController: NavHostController) {
                     containerColor = MaterialTheme.colorScheme.surface,
                     titleContentColor = MaterialTheme.colorScheme.onSurface
                 ),
-                title = {
-                    Text("Map")
-                }
+                title = { Text("Map") }
             )
         },
         bottomBar = {
@@ -166,9 +198,10 @@ fun MapScreen(navController: NavHostController) {
             modifier = Modifier.padding(innerPadding)
         ) {
             Card {
-                MapComponent()
+                MapComponent(friendsCoords = friendsCoords2.value)
             }
         }
     }
 }
+
 

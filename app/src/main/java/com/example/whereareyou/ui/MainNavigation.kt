@@ -28,7 +28,7 @@ fun MainNavigation(
             SettingsScreen( navController = navController, onLogoutClick = onLogoutClick, /*userData = userData*/)
         }
         composable("map") {
-            MapScreen(navController = navController, /*userData = userData*/)
+            MapScreen(navController = navController, uid = uid, db = db)
         }
         composable("friends") {
             FriendsScreen(navController = navController, userData = userData, uid = uid, db = db)
