@@ -48,7 +48,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddFriendDialog(openDialog: MutableState<Boolean>, userData: DocumentSnapshot?, db: FirebaseFirestore) {
+fun AddFriendDialog(openDialog: MutableState<Boolean>, userData: DocumentSnapshot?, db: FirebaseFirestore, onSuccess: () -> Unit) {
     if (openDialog.value) {
         var code = ""
         if (userData != null) {
@@ -141,14 +141,13 @@ fun AddFriendDialog(openDialog: MutableState<Boolean>, userData: DocumentSnapsho
                                 db.collection("FriendCodes").document(text).get()
                                     .addOnSuccessListener { document ->
                                         val uid = document.data?.get("userID").toString()
-                                        Log.d("AddingFriend", "UserID: $uid")
                                         if (userData != null) {
                                             val doc1 = db.collection("users").document(userData.id)
-                                            Log.d("AddingFriend", "$doc1")
                                             val doc2 = doc1.collection("Friend").document(uid)
-                                            Log.d("AddingFriend", "$doc2")
                                             doc2.set(HashMap<String, Any>()).addOnSuccessListener {
                                                 Log.d("AddingFriend", "Success")
+                                                openDialog.value = false
+                                                onSuccess()
                                             }.addOnFailureListener { e ->
                                                 Log.d("AddingFriend", "Error: $e")
                                             }

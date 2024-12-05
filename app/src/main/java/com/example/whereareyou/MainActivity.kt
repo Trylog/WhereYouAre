@@ -23,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
 
 
@@ -137,10 +138,85 @@ class MainActivity : ComponentActivity() {
         firebaseAuth.signInWithCredential(credential)
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
-                    onSuccess(true)  // Notify success
+                    val user = firebaseAuth.currentUser
+                    val uid = user?.uid ?: return@addOnCompleteListener
+                    val username = user.displayName ?: "Unknown"
+
+                    val db = Firebase.firestore
+                    val userRef = db.collection("users").document(uid)
+
+                    userRef.get().addOnSuccessListener { document ->
+                        if (document.exists()) {
+                            onSuccess(true)
+                        } else {
+                            generateUniqueFriendCode(db, { friendCode ->
+                                val userData = hashMapOf(
+                                    "Username" to username,
+                                    "FriendCode" to friendCode,
+                                    "LastLocation" to null
+                                )
+
+                                userRef.set(userData)
+                                    .addOnSuccessListener {
+                                        val friendCodeRef = db.collection("FriendCodes").document(friendCode)
+                                        val friendCodeData = hashMapOf(
+                                            "userID" to uid
+                                        )
+                                        friendCodeRef.set(friendCodeData)
+                                            .addOnSuccessListener {
+                                                Log.d("Firestore", "Friend code saved successfully")
+                                                onSuccess(true)
+                                            }
+                                            .addOnFailureListener { e ->
+                                                Log.e("Firestore", "Error saving friend code", e)
+                                                onSuccess(false)
+                                            }
+                                    }
+                                    .addOnFailureListener { e ->
+                                        Log.e("Firestore", "Error saving user data", e)
+                                        onSuccess(false)
+                                    }
+                            }, {
+                                Log.e("Firestore", "Error generating unique code")
+                                onSuccess(false)
+                            })
+                        }
+                    }.addOnFailureListener { e ->
+                        Log.e("Firestore", "Error checking user existence", e)
+                        onSuccess(false)
+                    }
                 } else {
-                    onSuccess(false)  // Notify failure
+                    onSuccess(false)
                 }
             }
+    }
+
+    fun generateUniqueFriendCode(db: FirebaseFirestore, onSuccess: (String) -> Unit, onFailure: () -> Unit) {
+        var newFriendCode: String
+        do {
+            newFriendCode = generateRandomCode()
+        } while (isFriendCodeExists(db, newFriendCode))
+
+        onSuccess(newFriendCode)
+    }
+
+    fun isFriendCodeExists(db: FirebaseFirestore, friendCode: String): Boolean {
+        var exists = false
+        db.collection("FriendCodes").document(friendCode)
+            .get()
+            .addOnSuccessListener { document ->
+                if (document.exists()) {
+                    exists = true
+                }
+            }
+            .addOnFailureListener {
+                Log.e("Firestore", "Error checking friend code existence", it)
+            }
+        return exists
+    }
+
+    fun generateRandomCode(): String {
+        val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        return (1..6).map { chars.random() }.joinToString("")
     }
 }

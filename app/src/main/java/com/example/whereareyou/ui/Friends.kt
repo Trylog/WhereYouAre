@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -109,42 +110,63 @@ fun refresh(
     friends: MutableState<List<String>?>,
     friendsCoords2: MutableState<Map<String, GeoPoint>?>,
     friendsSorted: MutableState<Map<String, Float>?>
-){
+) {
     Log.d("bb", "bbbb")
     isRefreshing.value = true
     sendLocation(db, uid, location)
+
     db.collection("users").document(uid).collection("Friend").get()
         .addOnSuccessListener { collection ->
-            friends.value = collection.documents.map { it.id }
-            Log.d("GetFriends", "Got friends: ${friends.value}")
-            //stop
-            friends.value?.let { e ->
-                Log.d("sdffdfd", "sfdssd")
-                db.collection("users").whereIn(FieldPath.documentId(), e).get()
-                    .addOnSuccessListener { snapshot ->
-                        Log.d("GettingFriendsData", "Success1")
-                        friendsCoords2.value = snapshot.documents.mapNotNull { document ->
-                            val name = document.getString("Username")
-                            val loc = document.getGeoPoint("LastLocation")
-                            if (name != null && loc != null) name to loc else null
-                        }.toMap()
-                        Log.d("GettingFriendsData", "Success2")
-                        val friendsDistances = LinkedHashMap<String, Float>()
-                        friendsCoords2.value?.forEach{ (name, coords) ->
-                            friendsDistances[name] = calculateDistance(location, coords)
-                        }
-                        friendsSorted.value = friendsDistances.toList().sortedBy { it.second }.toMap()
-                        isRefreshing.value = false
-                    }.addOnFailureListener { err ->
-                        Log.d("GettingFriendsData", "Error occurred: $err")
-                        isRefreshing.value = false
+            if (collection.isEmpty) {
+                Log.d("FriendCollection", "No friends collection, creating an empty one.")
+
+                db.collection("users").document(uid).collection("Friend").document("temporary").set(mapOf("placeholder" to "empty"))
+                    .addOnSuccessListener {
+                        Log.d("FriendCollection", "Temporary document created.")
+
+                        db.collection("users").document(uid).collection("Friend").document("temporary").delete()
+                            .addOnSuccessListener {
+                                Log.d("FriendCollection", "Temporary document deleted, collection remains empty.")
+                            }
+                            .addOnFailureListener { e ->
+                                Log.d("FriendCollection", "Error deleting temporary document: $e")
+                            }
                     }
+                    .addOnFailureListener { e ->
+                        Log.d("FriendCollection", "Error creating temporary document: $e")
+                    }
+            } else {
+                friends.value = collection.documents.map { it.id }
+                Log.d("GetFriends", "Got friends: ${friends.value}")
+                //stop
+                friends.value?.let { e ->
+                    db.collection("users").whereIn(FieldPath.documentId(), e).get()
+                        .addOnSuccessListener { snapshot ->
+                            Log.d("GettingFriendsData", "Success1")
+                            friendsCoords2.value = snapshot.documents.mapNotNull { document ->
+                                val name = document.getString("Username")
+                                val loc = document.getGeoPoint("LastLocation")
+                                if (name != null && loc != null) name to loc else null
+                            }.toMap()
+                            Log.d("GettingFriendsData", "Success2")
+                            val friendsDistances = LinkedHashMap<String, Float>()
+                            friendsCoords2.value?.forEach { (name, coords) ->
+                                friendsDistances[name] = calculateDistance(location, coords)
+                            }
+                            friendsSorted.value = friendsDistances.toList().sortedBy { it.second }.toMap()
+                            isRefreshing.value = false
+                        }
+                        .addOnFailureListener { err ->
+                            Log.d("GettingFriendsData", "Error occurred: $err")
+                            isRefreshing.value = false
+                        }
+                }
             }
-        }.addOnFailureListener { e ->
+        }
+        .addOnFailureListener { e ->
             Log.d("GetFriends", "Error getting friends: $e")
             isRefreshing.value = false
         }
-
 }
 
 fun sendLocation(db: FirebaseFirestore, uid: String, location: Location){
@@ -168,9 +190,8 @@ fun FriendsScreen(navController: NavHostController, userData: DocumentSnapshot?,
     val friends = remember { mutableStateOf<List<String>?>(null) }
     val friendsCoords2 = remember { mutableStateOf<Map<String, GeoPoint>?>(null) }
     val friendsSorted = remember { mutableStateOf<Map<String, Float>?>(null) }
-    val cameraPositionState = rememberCameraPositionState {
+    val cameraPositionState = rememberCameraPositionState {}
 
-    }
     CurrentLocation { n ->
         location = n
         n?.let {
@@ -180,10 +201,24 @@ fun FriendsScreen(navController: NavHostController, userData: DocumentSnapshot?,
             )
         }
     }
+
     Log.d("GettingFriends", "$friendsCoords2")
-    val openDialog = remember{ mutableStateOf(false) }
+    val openDialog = remember { mutableStateOf(false) }
     if (openDialog.value) {
-        AddFriendDialog(openDialog = openDialog, userData = userData, db = db)
+        AddFriendDialog(
+            openDialog = openDialog,
+            userData = userData,
+            db = db,
+            onSuccess = {
+                location?.let { refresh(db, uid, it, isRefreshing, friends, friendsCoords2, friendsSorted) }
+            }
+        )
+    }
+
+    LaunchedEffect(location) {
+        location?.let {
+            refresh(db, uid, location!!, isRefreshing, friends, friendsCoords2, friendsSorted)
+        }
     }
     
     Scaffold(
