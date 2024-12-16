@@ -23,6 +23,7 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -50,7 +51,11 @@ import java.util.Locale
 
 
 @Composable
-fun FriendCard(name: String, distanceText: String) {
+fun FriendCard(name: String, distanceText: String, db: FirebaseFirestore, uid: String,
+               location: Location,
+               isRefreshing: MutableState<Boolean>,
+               friendsSorted: MutableState<Map<String, Float>?>,
+               shareLocation: MutableState<Boolean>) {
     Card (
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -91,15 +96,39 @@ fun FriendCard(name: String, distanceText: String) {
             Box (
                 Modifier.align(Alignment.CenterVertically)
             ){
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = "Delete",
-                    tint = MaterialTheme.colorScheme.secondary
-                )
+                IconButton(
+                    onClick = { deleteFriend(name, db, uid, location, isRefreshing, friendsSorted, shareLocation) }
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = MaterialTheme.colorScheme.secondary
+                    )
+                }
             }
         }
 
     }
+}
+
+fun deleteFriend(name: String, db: FirebaseFirestore, uid: String, location: Location,
+                 isRefreshing: MutableState<Boolean>,
+                 friendsSorted: MutableState<Map<String, Float>?>,
+                 shareLocation: MutableState<Boolean>) {
+    db.collection("users").whereEqualTo("Username", name).get()
+        .addOnSuccessListener { document ->
+            val id = document.first().id
+            val doc = db.collection("users").document(uid)
+            val doc1 = doc.collection("Friend").document(id)
+            doc1.delete().addOnSuccessListener {
+                Log.d("DELETING", "User $id deleted.")
+                refresh(db, uid, location, isRefreshing, friendsSorted, shareLocation)
+            }.addOnFailureListener { e ->
+                Log.d("DELETING", "User $id deleting error.", e)
+            }
+        }.addOnFailureListener { e ->
+            Log.d("DELETING", "Failed to find name $name.", e)
+        }
 }
 
 fun refresh(
@@ -107,13 +136,14 @@ fun refresh(
     uid: String,
     location: Location,
     isRefreshing: MutableState<Boolean>,
-    friends: MutableState<List<String>?>,
-    friendsCoords2: MutableState<Map<String, GeoPoint>?>,
-    friendsSorted: MutableState<Map<String, Float>?>
+    friendsSorted: MutableState<Map<String, Float>?>,
+    shareLocation: MutableState<Boolean>
 ) {
     Log.d("bb", "bbbb")
     isRefreshing.value = true
-    sendLocation(db, uid, location)
+    if (shareLocation.value) {
+        sendLocation(db, uid, location)
+    }
 
     db.collection("users").document(uid).collection("Friend").get()
         .addOnSuccessListener { collection ->
@@ -136,21 +166,24 @@ fun refresh(
                         Log.d("FriendCollection", "Error creating temporary document: $e")
                     }
             } else {
-                friends.value = collection.documents.map { it.id }
-                Log.d("GetFriends", "Got friends: ${friends.value}")
+                val friends = collection.documents.map { it.id }
+                Log.d("GetFriends", "Got friends: $friends")
                 //stop
-                friends.value?.let { e ->
+                friends.let { e ->
                     db.collection("users").whereIn(FieldPath.documentId(), e).get()
                         .addOnSuccessListener { snapshot ->
                             Log.d("GettingFriendsData", "Success1")
-                            friendsCoords2.value = snapshot.documents.mapNotNull { document ->
+                            val friendsCoords2 = snapshot.documents.mapNotNull { document ->
                                 val name = document.getString("Username")
                                 val loc = document.getGeoPoint("LastLocation")
                                 if (name != null && loc != null) name to loc else null
                             }.toMap()
                             Log.d("GettingFriendsData", "Success2")
                             val friendsDistances = LinkedHashMap<String, Float>()
-                            friendsCoords2.value?.forEach { (name, coords) ->
+                            friendsCoords2.forEach { (name, coords) ->
+                                friendsDistances[name] = calculateDistance(location, coords)
+                            }
+                            friendsCoords2.forEach { (name, coords) ->
                                 friendsDistances[name] = calculateDistance(location, coords)
                             }
                             friendsSorted.value = friendsDistances.toList().sortedBy { it.second }.toMap()
@@ -183,12 +216,11 @@ fun sendLocation(db: FirebaseFirestore, uid: String, location: Location){
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FriendsScreen(navController: NavHostController, userData: DocumentSnapshot?, db: FirebaseFirestore, uid: String) {
+fun FriendsScreen(navController: NavHostController, userData: DocumentSnapshot?, db: FirebaseFirestore,
+                  uid: String, shareLocation: MutableState<Boolean>) {
     Log.d("TEST", "Friends: $userData")
     var location by remember { mutableStateOf<Location?>(null) }
     val isRefreshing = remember { mutableStateOf(false) }
-    val friends = remember { mutableStateOf<List<String>?>(null) }
-    val friendsCoords2 = remember { mutableStateOf<Map<String, GeoPoint>?>(null) }
     val friendsSorted = remember { mutableStateOf<Map<String, Float>?>(null) }
     val cameraPositionState = rememberCameraPositionState {}
 
@@ -202,7 +234,6 @@ fun FriendsScreen(navController: NavHostController, userData: DocumentSnapshot?,
         }
     }
 
-    Log.d("GettingFriends", "$friendsCoords2")
     val openDialog = remember { mutableStateOf(false) }
     if (openDialog.value) {
         AddFriendDialog(
@@ -210,14 +241,14 @@ fun FriendsScreen(navController: NavHostController, userData: DocumentSnapshot?,
             userData = userData,
             db = db,
             onSuccess = {
-                location?.let { refresh(db, uid, it, isRefreshing, friends, friendsCoords2, friendsSorted) }
+                location?.let { refresh(db, uid, it, isRefreshing, friendsSorted, shareLocation) }
             }
         )
     }
 
     LaunchedEffect(location) {
         location?.let {
-            refresh(db, uid, location!!, isRefreshing, friends, friendsCoords2, friendsSorted)
+            refresh(db, uid, location!!, isRefreshing, friendsSorted, shareLocation)
         }
     }
     
@@ -249,7 +280,7 @@ fun FriendsScreen(navController: NavHostController, userData: DocumentSnapshot?,
     ){ innerPadding ->
         PullToRefreshBox(
             onRefresh = {
-                location?.let { refresh(db, uid, location!!, isRefreshing, friends, friendsCoords2, friendsSorted) }
+                location?.let { refresh(db, uid, location!!, isRefreshing, friendsSorted, shareLocation) }
             },
             isRefreshing = isRefreshing.value
         ) {
@@ -262,7 +293,7 @@ fun FriendsScreen(navController: NavHostController, userData: DocumentSnapshot?,
                 verticalArrangement = Arrangement.spacedBy(15.dp)
             ) { if (friendsSorted.value.isNullOrEmpty()) {
                 Card{
-                    Text("Nikogo tu nie ma")
+                    Text("There's no one here")
                 }
             }
                 friendsSorted.value?.forEach { (name, distance) ->
@@ -271,14 +302,17 @@ fun FriendsScreen(navController: NavHostController, userData: DocumentSnapshot?,
                     if (dist > 1000) {
                         dist /= 1000
                         distanceText = distanceText.plus(
-                            String.format(Locale.forLanguageTag("pl"), "%.2f", dist)
+                            String.format(Locale.forLanguageTag("en"), "%.2f", dist)
                         ).plus(" km")
                     } else {
                         distanceText = distanceText.plus(
-                            String.format(Locale.forLanguageTag("pl"), "%.2f", dist)
+                            String.format(Locale.forLanguageTag("en"), "%.2f", dist)
                         ).plus(" m")
                     }
-                    FriendCard(name, distanceText)
+                    location?.let {
+                        FriendCard(name, distanceText, db, uid,
+                            it, isRefreshing, friendsSorted, shareLocation)
+                    }
                 }
 
             }

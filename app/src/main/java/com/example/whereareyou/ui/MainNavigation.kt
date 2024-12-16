@@ -1,6 +1,7 @@
 package com.example.whereareyou.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -15,7 +16,8 @@ fun MainNavigation(
     onLogoutClick: () -> Unit,
     uid: String,
     db: FirebaseFirestore,
-    userData: DocumentSnapshot?
+    userData: DocumentSnapshot?,
+    shareLocation: MutableState<Boolean>
 ) {
     NavHost(
         navController = navController,
@@ -25,13 +27,13 @@ fun MainNavigation(
             LoginScreen(onLoginClick = onLoginClick)
         }
         composable("settings") {
-            SettingsScreen( navController = navController, onLogoutClick = onLogoutClick, /*userData = userData*/)
+            SettingsScreen( navController = navController, onLogoutClick = onLogoutClick, shareLocation = shareLocation, /*userData = userData*/)
         }
         composable("map") {
             MapScreen(navController = navController, uid = uid, db = db)
         }
         composable("friends") {
-            FriendsScreen(navController = navController, userData = userData, uid = uid, db = db)
+            FriendsScreen(navController = navController, userData = userData, uid = uid, db = db, shareLocation = shareLocation)
         }
     }
 }

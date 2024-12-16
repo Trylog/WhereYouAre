@@ -69,6 +69,7 @@ class MainActivity : ComponentActivity() {
 
                 val db = Firebase.firestore
                 val userData = remember { mutableStateOf<DocumentSnapshot?>(null) }
+                val shareLocation = remember { mutableStateOf(true) }
 
                 // State to track current Firebase user
                 var currentUser by remember { mutableStateOf<FirebaseUser?>(firebaseAuth.currentUser) }
@@ -104,6 +105,7 @@ class MainActivity : ComponentActivity() {
                         uid = firebaseAuth.currentUser?.uid ?: "",
                         db = db,
                         userData = userData.value,
+                        shareLocation = shareLocation
                     )
 
 

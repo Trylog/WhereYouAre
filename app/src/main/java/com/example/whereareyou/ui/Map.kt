@@ -36,6 +36,7 @@ import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
 import kotlinx.coroutines.tasks.await
+import java.util.Locale
 
 @Composable
 fun CurrentLocation(onLocationChanged: (Location?) -> Unit) {
@@ -122,7 +123,7 @@ fun MapComponent(friendsCoords: Map<String, GeoPoint>?) {
         if (currentPosition != null) {
             Marker(
                 state = rememberMarkerState(position = currentPosition),
-                title = "Moja lokalizacja"
+                title = "My location"
             )
         }
 
@@ -136,11 +137,11 @@ fun MapComponent(friendsCoords: Map<String, GeoPoint>?) {
                     val distance = calculateDistance(it, GeoPoint(latLng.latitude, latLng.longitude))
                     Log.d("lating", distance.toString())
                     if (distance >= 1000) {
-                        "Odległość: ${String.format("%.2f", distance / 1000)} km"
+                        "Distance: ${String.format(Locale.forLanguageTag("en"), "%.2f", distance / 1000)} km"
                     } else {
-                        "Odległość: ${String.format("%.2f", distance)} m"
+                        "Distance: ${String.format(Locale.forLanguageTag("en"), "%.2f", distance)} m"
                     }
-                } ?: "Lokalizacja niedostępna"
+                } ?: "Location unavailable"
             )
 
             // Dodanie linii między użytkownikiem a znajomym
@@ -159,8 +160,6 @@ fun MapComponent(friendsCoords: Map<String, GeoPoint>?) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreen(navController: NavHostController, db: FirebaseFirestore, uid: String) {
-    var location by remember { mutableStateOf<Location?>(null) }
-    val isRefreshing = remember { mutableStateOf(false) }
     val friendsCoords2 = remember { mutableStateOf<Map<String, GeoPoint>?>(null) }
 
     // Pobieranie danych znajomych

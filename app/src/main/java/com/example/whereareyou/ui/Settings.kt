@@ -12,15 +12,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -29,14 +24,11 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 
 
@@ -44,9 +36,9 @@ import androidx.navigation.NavHostController
 @Composable
 fun SettingsScreen(
     navController: NavHostController,
-    onLogoutClick: () -> Unit
+    onLogoutClick: () -> Unit,
+    shareLocation: MutableState<Boolean>
 ) {
-    var checked by remember { mutableStateOf(true) }
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
 
@@ -91,7 +83,7 @@ fun SettingsScreen(
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(
-                            text = "Konto",
+                            text = "Account",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
@@ -108,11 +100,11 @@ fun SettingsScreen(
                             ) {
                                 Icon(
                                     Icons.Filled.AccountCircle,
-                                    contentDescription = "wyloguj",
+                                    contentDescription = "Log out",
                                     modifier = Modifier.size(24.dp),
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Wyloguj", style = MaterialTheme.typography.bodyMedium)
+                                Text("Log out", style = MaterialTheme.typography.bodyMedium)
                             }
                         }
                     }
@@ -124,7 +116,7 @@ fun SettingsScreen(
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(
-                            text = "Lokalizacja",
+                            text = "Location",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
@@ -135,25 +127,24 @@ fun SettingsScreen(
                         ) {
                             Spacer(modifier = Modifier.width(20.dp))
                             Switch(
-                                checked = checked,
+                                checked = shareLocation.value,
                                 onCheckedChange = {
-                                    checked = it
-                                    /* TODO: Logika przełączania lokalizacji */
+                                    shareLocation.value = it
                                 }
                             )
                             Spacer(modifier = Modifier.width(20.dp))
                             Text(
-                                "Udostępnianie lokalizacji",
+                                "Location sharing",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
                     }
                 }
-            Button(
-                onClick = { /* TODO: Zapisanie ustawień */ },
-            ) {
-                Text("Zapisz ustawienia")
-            }
+//            Button(
+//                onClick = { /* TODO: Zapisanie ustawień */ },
+//            ) {
+//                Text("Zapisz ustawienia")
+//            }
         }
         } else {
             Column(
@@ -169,7 +160,7 @@ fun SettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     Text(
-                        text = "Konto",
+                        text = "Account",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
@@ -187,13 +178,13 @@ fun SettingsScreen(
                         ) {
                             Icon(
                                 Icons.Filled.AccountCircle,
-                                contentDescription = "wyloguj",
+                                contentDescription = "Log out",
                                 modifier = Modifier
                                     .width(50.dp)
                                     .height(30.dp),
                             )
                             Spacer(modifier = Modifier.width(20.dp))
-                            Text("Wyloguj", style = MaterialTheme.typography.bodyMedium)
+                            Text("Log out", style = MaterialTheme.typography.bodyMedium)
                         }
                     }
 
@@ -203,7 +194,7 @@ fun SettingsScreen(
                     )
 
                     Text(
-                        text = "Lokalizacja",
+                        text = "Location",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
@@ -215,15 +206,14 @@ fun SettingsScreen(
                     ) {
                         Spacer(modifier = Modifier.width(20.dp))
                         Switch(
-                            checked = checked,
+                            checked = shareLocation.value,
                             onCheckedChange = {
-                                checked = it
-                                /* TODO: Logika przełączani lokalizacji */
+                                shareLocation.value = it
                             }
                         )
                         Spacer(modifier = Modifier.width(20.dp))
                         Text(
-                            "Udostępnianie lokalizacji",
+                            "Location sharing",
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -234,13 +224,13 @@ fun SettingsScreen(
                         thickness = 1.dp
                     )
                 }
-                Button(
-                    onClick = { /* TODO: Zapisanie ustawień */ },
-                ) {
-                    Text(
-                        text = "Zapisz ustawienia",
-                    )
-                }
+//                Button(
+//                    onClick = { /* TODO: Zapisanie ustawień */ },
+//                ) {
+//                    Text(
+//                        text = "Zapisz ustawienia",
+//                    )
+//                }
             }
         }
     }
