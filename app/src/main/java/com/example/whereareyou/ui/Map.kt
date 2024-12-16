@@ -166,15 +166,19 @@ fun MapScreen(navController: NavHostController, db: FirebaseFirestore, uid: Stri
     LaunchedEffect(Unit) {
         db.collection("users").document(uid).collection("Friend").get()
             .addOnSuccessListener { collection ->
-                val friendIds = collection.documents.map { it.id }
-                db.collection("users").whereIn(FieldPath.documentId(), friendIds).get()
-                    .addOnSuccessListener { snapshot ->
-                        friendsCoords2.value = snapshot.documents.mapNotNull { document ->
-                            val name = document.getString("Username")
-                            val loc = document.getGeoPoint("LastLocation")
-                            if (name != null && loc != null) name to loc else null
-                        }.toMap()
+                run {
+                    if (!collection.isEmpty) {
+                        val friendIds = collection.documents.map { it.id }
+                        db.collection("users").whereIn(FieldPath.documentId(), friendIds).get()
+                            .addOnSuccessListener { snapshot ->
+                                friendsCoords2.value = snapshot.documents.mapNotNull { document ->
+                                    val name = document.getString("Username")
+                                    val loc = document.getGeoPoint("LastLocation")
+                                    if (name != null && loc != null) name to loc else null
+                                }.toMap()
+                            }
                     }
+                }
             }
     }
 

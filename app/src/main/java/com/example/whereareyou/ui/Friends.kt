@@ -122,6 +122,7 @@ fun deleteFriend(name: String, db: FirebaseFirestore, uid: String, location: Loc
             val doc1 = doc.collection("Friend").document(id)
             doc1.delete().addOnSuccessListener {
                 Log.d("DELETING", "User $id deleted.")
+                friendsSorted.value = friendsSorted.value?.filterKeys { it != name }?.toMap()
                 refresh(db, uid, location, isRefreshing, friendsSorted, shareLocation)
             }.addOnFailureListener { e ->
                 Log.d("DELETING", "User $id deleting error.", e)
@@ -129,6 +130,7 @@ fun deleteFriend(name: String, db: FirebaseFirestore, uid: String, location: Loc
         }.addOnFailureListener { e ->
             Log.d("DELETING", "Failed to find name $name.", e)
         }
+
 }
 
 fun refresh(
@@ -290,10 +292,11 @@ fun FriendsScreen(navController: NavHostController, userData: DocumentSnapshot?,
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
                     .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(15.dp)
             ) { if (friendsSorted.value.isNullOrEmpty()) {
                 Card{
-                    Text("There's no one here")
+                    Text("  There's no one here  ")
                 }
             }
                 friendsSorted.value?.forEach { (name, distance) ->
